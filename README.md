@@ -1,134 +1,102 @@
-# 🎯 Early-Warning Risk Engine
+# Early-Warning Risk Engine
 
-**An end-to-end analytics product that scores every entity in a population by its risk of a bad outcome — early enough to act on it.**
+I built this to score every record in a population by how likely it is to end badly, early enough that someone can actually do something about it.
 
-The demo predicts which **students** are at risk of not being retained, so advisors can intervene before they drop out. But the engine is deliberately **domain-agnostic**: every column, the target, and the risk thresholds live in [`config.yaml`](config.yaml). Repoint that config and the *same pipeline* scores **wells, pumps, or any asset** — turning it into a predictive-maintenance / production-decline monitor.
+The demo version predicts which students are at risk of not being retained, so an advisor can step in before they drop out. The part I care about more is that none of the modeling code knows it's working with students. The entity, the features, the target, and the risk cutoffs all live in [`config.yaml`](config.yaml). Point that file at a different dataset and the same pipeline scores wells, pumps, or any other asset instead. That's how a student-retention project becomes a predictive-maintenance or production-monitoring project without rewriting anything.
 
-> **The pitch in one line:** *Same architecture, swap the entity.* At a university it flags at-risk students; at an E&P operator it flags underperforming wells or equipment heading for failure.
+Here's the mapping I had in mind:
 
-| Build it once for…        | …and it transfers to                                   |
-|---------------------------|--------------------------------------------------------|
-| **Student** → not retained | **Well** → production decline                          |
-| LMS logins / submit rate   | Sensor pings / telemetry frequency                     |
-| Current vs. prior GPA      | Current vs. baseline production rate                   |
-| "At-risk student" watchlist| "At-risk asset" maintenance watchlist                  |
+| Student version | Asset version (e.g. oil & gas) |
+|---|---|
+| Student → not retained | Well → production decline |
+| LMS logins, submit rate | Sensor readings, telemetry frequency |
+| Current vs. prior GPA | Current vs. baseline production |
+| At-risk student watchlist | At-risk asset maintenance list |
 
----
+## Live demo
 
-## 🚀 Live demo
+Repo: https://github.com/Nithinchowdary123/early-warning-risk-engine
 
-**Repo:** https://github.com/Nithinchowdary123/early-warning-risk-engine
+The dashboard has the headline KPIs, cohort risk breakdowns, the model's top risk drivers, an exportable watchlist of the highest-risk records, and a what-if tool that recomputes the risk score live as you move the sliders.
 
-> One step left (interactive, ~3 min — see [Deployment](#-deployment)): connect the repo on
-> [share.streamlit.io](https://share.streamlit.io) to get your live URL, then paste it here:
-> **`https://<your-app>.streamlit.app`**
+Hosted version (Streamlit Cloud): _add the URL here once deployed — see [DEPLOY.md](DEPLOY.md)._
 
-The dashboard includes KPIs, cohort risk analysis, model-driven risk drivers, an exportable **intervention watchlist**, and a **live what-if scorer** that recomputes risk as you move the sliders.
-
----
-
-## 🏗️ Architecture
+## How it fits together
 
 ```
  data/raw            src/                                  app/
 ┌──────────┐   ┌────────────────────────────────────┐   ┌──────────────┐
 │ raw CSV  │ → │ prepare_data.py  (clean + validate │ → │ streamlit_app│
-│ (messy)  │   │                   + feature eng.)   │   │  • KPIs      │
-└──────────┘   │ warehouse.py     (DuckDB + SQL)     │   │  • watchlist │
-               │ risk_engine.py   (train + score)    │   │  • live score│
+│ (messy)  │   │                   + feature eng.)   │   │  KPIs        │
+└──────────┘   │ warehouse.py     (DuckDB + SQL)     │   │  watchlist   │
+               │ risk_engine.py   (train + score)    │   │  live score  │
                └────────────────────────────────────┘   └──────────────┘
-        config.yaml  ◄── single source of truth for the whole pipeline
+        config.yaml drives every stage
 ```
 
-**Flow:** ingest → validate & clean → engineer features → SQL analytics → train model → score & band every entity → monitor on the dashboard.
+The flow is: load the raw extract, clean and validate it, engineer a few features, run the SQL analytics, train the model, score and band every record, then surface it all on the dashboard.
 
----
+## What's in here
 
-## 🧰 What this demonstrates
+- **SQL** ([`src/sql/analytics.sql`](src/sql/analytics.sql)) — cohort comparisons, term trends, and an `NTILE` window function to bucket students into engagement deciles.
+- **Cleaning and validation** ([`src/prepare_data.py`](src/prepare_data.py)) — drops duplicates, standardizes the messy category labels, throws out impossible values, and imputes what's missing. It prints a short data-quality report so you can see exactly what it changed.
+- **Modeling** ([`src/risk_engine.py`](src/risk_engine.py)) — a gradient boosting classifier with ROC-AUC and feature importances. Nothing in this file is student-specific; it reads everything from the config.
+- **Dashboard** ([`app/streamlit_app.py`](app/streamlit_app.py)) — Streamlit and Plotly.
+- **One-command rebuild** ([`run_pipeline.py`](run_pipeline.py)) — regenerates the whole thing from scratch.
 
-| Skill (from the JD / résumé) | Where it shows up |
-|------------------------------|-------------------|
-| **SQL** (CTEs, window functions, cohort analysis) | [`src/sql/analytics.sql`](src/sql/analytics.sql) — `NTILE` engagement deciles, cohort risk, trends |
-| **Python** (pandas, NumPy, scikit-learn) | the entire `src/` pipeline |
-| **Data cleaning & validation** | [`prepare_data.py`](src/prepare_data.py) — dedupe, standardize, range-check, impute (with a printed data-quality report) |
-| **Statistical / predictive modeling** | [`risk_engine.py`](src/risk_engine.py) — Gradient Boosting, ROC-AUC, feature importance |
-| **BI / dashboards** | [`app/streamlit_app.py`](app/streamlit_app.py) — Plotly + Streamlit, interactive |
-| **Translating data → decisions** | the exportable watchlist + "so what" recommendations |
-| **ETL / reproducibility** | [`run_pipeline.py`](run_pipeline.py) rebuilds everything with one command |
+## What the data says
 
----
+A few things that came out of the demo dataset:
 
-## 📊 Selected findings (from the demo data)
+- Engagement matters most. Non-retention drops from about 65% among the least-engaged students to roughly 17% among the most-engaged.
+- First-generation students are retained at a noticeably lower rate (about 8 points lower than continuing-generation students).
+- The model lands around 0.80 ROC-AUC. The strongest drivers are current GPA, assignment submission rate, and LMS logins.
+- It ends up flagging a few thousand students as high-risk, which is the list an advising team would actually work from.
 
-- **Engagement is the strongest lever:** non-retention falls from **64.6%** in the least-engaged decile to **16.5%** in the most-engaged — a clean, monotonic gradient.
-- **Equity gap:** first-generation students show a **+7.9 pp** higher non-retention rate (43.5% vs. 35.6%).
-- **Model:** Gradient Boosting reaches **ROC-AUC ≈ 0.80**; top drivers are current GPA, assignment submission rate, and LMS logins.
-- **Actionable output:** the engine flags **~3,400 high-risk students** for early intervention.
-
----
-
-## ▶️ Run it locally
+## Running it locally
 
 ```bash
-# 1. set up an isolated environment
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 
-# 2. build everything (data → clean → warehouse → model)
-python run_pipeline.py
-
-# 3. launch the dashboard
+python run_pipeline.py            # data -> clean -> warehouse -> model
 streamlit run app/streamlit_app.py
 ```
 
----
+## Deploying it
 
-## ☁️ Deployment
+It's set up for Streamlit Community Cloud, which is free. Short version: push to GitHub, go to [share.streamlit.io](https://share.streamlit.io), make a new app pointing at `app/streamlit_app.py` on `main`. Full steps are in [DEPLOY.md](DEPLOY.md).
 
-The app is built for **free** hosting on Streamlit Community Cloud:
+The cleaned data and the trained model are committed so the hosted app works straight away. The DuckDB file is tied to a specific version, so I left it out of git and rebuild it in memory at query time instead.
 
-1. Push this repo to GitHub (see [`DEPLOY.md`](DEPLOY.md) for exact commands).
-2. Go to **[share.streamlit.io](https://share.streamlit.io)** → *New app*.
-3. Point it at `app/streamlit_app.py` on your `main` branch.
-4. Deploy. You get a public URL to put on your résumé.
+## Pointing it at a different problem
 
-> The processed data (`*.parquet`) and trained model (`*.joblib`) are committed so the deployed app runs immediately. The version-specific DuckDB binary is rebuilt on the fly (in-memory), so it's git-ignored.
+To turn this into, say, an equipment-failure monitor:
 
----
+1. Swap in the new dataset.
+2. In `config.yaml`, change `entity_label` and `event_label` and list the new feature columns and target.
+3. Run `python run_pipeline.py` again.
 
-## 🔁 Repointing to a new domain (the EOG move)
+The cleaning, SQL, model, and dashboard pick up the new config without code changes.
 
-To make this a **production / predictive-maintenance** monitor, you change *config, not code*:
-
-1. Drop in the new dataset (e.g., well telemetry).
-2. In `config.yaml`, set `domain.entity_label: "Well"`, `event_label: "Production Decline"`, and list the new feature columns + target.
-3. Re-run `python run_pipeline.py`.
-
-The cleaning, SQL, modeling, and dashboard all adapt automatically — that's the design.
-
----
-
-## 🗂️ Repo structure
+## Layout
 
 ```
-.
-├── config.yaml              # single source of truth (domain, features, thresholds)
-├── run_pipeline.py          # one-command rebuild
-├── requirements.txt
-├── data/
-│   ├── raw/                 # generated messy extract
-│   └── processed/           # cleaned parquet + scored output
-├── src/
-│   ├── generate_data.py     # realistic synthetic data w/ injected mess
-│   ├── prepare_data.py      # clean, validate, feature-engineer
-│   ├── warehouse.py         # DuckDB + named SQL runner
-│   ├── risk_engine.py       # config-driven train + score
-│   └── sql/analytics.sql    # the analytical SQL
-├── app/
-│   └── streamlit_app.py     # the dashboard
-└── models/                  # trained model bundle
+config.yaml              config that drives the whole pipeline
+run_pipeline.py          rebuild everything in one command
+requirements.txt
+data/
+  raw/                   generated messy extract
+  processed/             cleaned parquet + scored output
+src/
+  generate_data.py       synthetic data with realistic mess baked in
+  prepare_data.py        clean, validate, feature-engineer
+  warehouse.py           DuckDB + the named SQL runner
+  risk_engine.py         config-driven train + score
+  sql/analytics.sql      the analytical queries
+app/
+  streamlit_app.py       the dashboard
+models/                  saved model
 ```
 
----
-
-*Demo data is fully synthetic and contains no real student records.*
+The student data is synthetic — I generated it, so there are no real student records in here.

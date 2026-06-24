@@ -1,15 +1,14 @@
 """
 risk_engine.py
 ---------------
-The reusable, config-driven Early-Warning Risk Engine.
+Trains the risk model and scores the population.
 
-NOTHING in this file is student-specific — every column name, the target, and
-the risk thresholds come from config.yaml. Point the config at well-production
-data and the same engine scores wells instead of students. That portability is
-the whole pitch.
+Nothing here is student-specific. The feature columns, the target, and the
+risk thresholds all come from config.yaml, so the same code runs on a different
+dataset once the config points at it.
 
-Pipeline:  load features -> train/test split -> Gradient Boosting -> evaluate
-           -> score every entity -> assign High/Medium/Low risk band -> save.
+Steps: load features, split, fit gradient boosting, evaluate, then score every
+record and tag it High/Medium/Low. Saves the model and the scored data.
 
 Run:  python src/risk_engine.py
 Out:  models/risk_model.joblib, data/processed/students_scored.parquet

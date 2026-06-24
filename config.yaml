@@ -1,16 +1,10 @@
-# =============================================================================
-# Early-Warning Risk Engine — Configuration
-# -----------------------------------------------------------------------------
-# This file is the whole point of the project: the pipeline is DOMAIN-AGNOSTIC.
-# To repoint the engine at a different problem, you only change this config —
-# not the code.
+# Config for the whole pipeline. The code reads everything from here, so to run
+# it on a different problem you edit this file instead of the code.
 #
-#   - LSU (this demo):  entity = "student",  event = "dropout / failure"
-#   - EOG Resources:    entity = "well",     event = "underperformance / failure"
+#   student demo:  entity = student, event = not retained
+#   asset version: entity = well,    event = production decline / failure
 #
-# Same architecture: ingest -> validate -> engineer features -> score risk ->
-# rank entities -> flag the worst -> monitor on a dashboard.
-# =============================================================================
+# Stages: ingest -> validate -> features -> score -> rank -> dashboard.
 
 domain:
   name: "student_success"          # swap to e.g. "well_production" for EOG

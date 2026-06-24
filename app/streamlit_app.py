@@ -52,10 +52,10 @@ model, features, importance = bundle["model"], bundle["features"], bundle["impor
 # -----------------------------------------------------------------------------
 st.title(f"🎯 {CFG['domain']['display_title']}")
 st.caption(
-    f"A config-driven early-warning engine that scores every **{ENTITY.lower()}** "
-    f"by risk of **{EVENT.lower()}** so teams can intervene early. "
-    "The same pipeline re-points at any entity (e.g. predictive maintenance, "
-    "production-decline monitoring) by editing `config.yaml`."
+    f"Scores every {ENTITY.lower()} by risk of {EVENT.lower()} so the team can "
+    "step in early. The pipeline is config-driven, so the same setup works for "
+    "other use cases (predictive maintenance, production monitoring) by editing "
+    "`config.yaml`."
 )
 
 # -----------------------------------------------------------------------------
@@ -123,7 +123,7 @@ st.divider()
 # Watchlist — the actionable output
 # -----------------------------------------------------------------------------
 st.subheader(f"🚨 Intervention watchlist — highest-risk {ENTITY.lower()}s")
-st.caption("This is the 'so what': a ranked, exportable list to act on.")
+st.caption("Ranked list of who to reach out to first. Export it as CSV below.")
 band_filter = st.multiselect("Show bands", ["High", "Medium", "Low"], default=["High"])
 watch = (
     df[df["risk_band"].isin(band_filter)]
@@ -146,8 +146,7 @@ st.divider()
 # -----------------------------------------------------------------------------
 st.subheader("🔮 Live risk score — what-if tool")
 st.caption(
-    f"Adjust the inputs to see how the model's predicted {EVENT.lower()} risk "
-    "changes in real time. (This is what a BI dashboard alone can't do.)"
+    f"Move the sliders to see how the predicted {EVENT.lower()} risk changes."
 )
 
 sc1, sc2, sc3 = st.columns(3)
@@ -180,12 +179,8 @@ gauge.update_layout(height=120, showlegend=False, xaxis_title="risk probability"
 m2.plotly_chart(gauge, use_container_width=True)
 
 st.divider()
-st.markdown(
-    f"""
-    **Why this matters for the role:** swap `config.yaml` from *student / not-retained*
-    to *well / production-decline* (or *pump / failure*) and this exact engine becomes
-    a predictive-maintenance and production-monitoring tool — same ingest → validate →
-    feature-engineer → score → rank → monitor architecture. Model ROC-AUC:
-    **{bundle['auc']:.3f}**.
-    """
+st.caption(
+    f"Model ROC-AUC: {bundle['auc']:.3f}. The same pipeline runs on other "
+    "datasets by editing config.yaml (e.g. scoring equipment for failure instead "
+    "of students for retention)."
 )
