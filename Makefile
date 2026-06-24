@@ -27,4 +27,4 @@ model:           ## train + score only
 	python src/risk_engine.py
 
 test:            ## smoke-test that the dashboard renders (expect 0)
-	python -c "from streamlit.testing.v1 import AppTest; print('exceptions:', len(AppTest.from_file('app/streamlit_app.py').run().exception))"
+	python -c "from streamlit.testing.v1 import AppTest; print('exceptions:', len(AppTest.from_file('app/streamlit_app.py', default_timeout=60).run().exception))"

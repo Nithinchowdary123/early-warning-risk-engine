@@ -17,7 +17,7 @@ Always activate the venv first: `source .venv/bin/activate`
 | Clean + features only | `python src/prepare_data.py` |
 | Build warehouse + run SQL | `python src/warehouse.py` |
 | Train + score only | `python src/risk_engine.py` |
-| Smoke-test the app | `python -c "from streamlit.testing.v1 import AppTest; print(len(AppTest.from_file('app/streamlit_app.py').run().exception))"` (expect 0) |
+| Smoke-test the app | `make test` (expect `exceptions: 0`) |
 
 ## How it's wired
 
