@@ -1,0 +1,9 @@
+# Early-Warning Risk Engine — dependencies
+pandas==2.0.3
+numpy==1.24.4
+scikit-learn==1.3.2
+duckdb==0.10.3
+streamlit==1.33.0
+plotly==5.22.0
+joblib==1.4.2
+PyYAML==6.0.1

@@ -1,0 +1,13 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Local DuckDB binary (rebuilt by the pipeline; version-specific)
+data/processed/warehouse.duckdb
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/

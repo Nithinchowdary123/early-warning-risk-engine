@@ -1,0 +1,58 @@
+# =============================================================================
+# Early-Warning Risk Engine — Configuration
+# -----------------------------------------------------------------------------
+# This file is the whole point of the project: the pipeline is DOMAIN-AGNOSTIC.
+# To repoint the engine at a different problem, you only change this config —
+# not the code.
+#
+#   - LSU (this demo):  entity = "student",  event = "dropout / failure"
+#   - EOG Resources:    entity = "well",     event = "underperformance / failure"
+#
+# Same architecture: ingest -> validate -> engineer features -> score risk ->
+# rank entities -> flag the worst -> monitor on a dashboard.
+# =============================================================================
+
+domain:
+  name: "student_success"          # swap to e.g. "well_production" for EOG
+  entity_label: "Student"          # the thing being scored (Well / Pump / Asset)
+  entity_id: "student_id"
+  event_label: "Not Retained"      # the bad outcome we predict (Well Decline / Failure)
+  display_title: "Student Success — Early-Warning Risk Engine"
+
+target:
+  column: "not_retained"           # 1 = bad outcome occurred, 0 = fine
+  positive_class: 1
+
+# Features the model is allowed to use. Grouped only for readability/EDA.
+features:
+  engagement:
+    - lms_logins_per_week          # EOG analog: sensor pings / telemetry frequency
+    - assignment_submit_rate       # EOG analog: % of expected readings received
+    - avg_days_late
+  performance:
+    - current_gpa                  # EOG analog: current production rate
+    - midterm_score
+    - prior_gpa                    # EOG analog: baseline / initial output
+  context:
+    - credit_load
+    - financial_aid_flag
+    - first_gen_flag
+    - commute_distance_mi
+
+# Risk banding thresholds applied to the model's probability output.
+risk_bands:
+  high: 0.60        # >= 0.60 probability -> High risk (intervene now)
+  medium: 0.30      # 0.30–0.60 -> Medium (watch)
+  # < 0.30 -> Low
+
+model:
+  algorithm: "gradient_boosting"   # interpretable + strong on tabular data
+  test_size: 0.25
+  random_state: 42
+
+paths:
+  raw_data: "data/raw/students.csv"
+  clean_data: "data/processed/students_clean.parquet"
+  scored_data: "data/processed/students_scored.parquet"
+  duckdb: "data/processed/warehouse.duckdb"
+  model: "models/risk_model.joblib"
